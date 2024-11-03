@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -6,17 +7,23 @@ namespace cpuspike;
 public class CPUStressTest
 {
     private const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    private const int stringLength = 1000;
-    private const int hashIterations = 1000;
-    private const int processIterations = 1000;
+    private const int stringLength = 100_000;
+    private const int hashIterations = 100_000;
+    private const int testRunDurationInMinutes = 120;
 
     public static void RunStressTest()
     {
-        Parallel.For(0, Environment.ProcessorCount, pid =>
-        {
-            for (int i = 0; i < processIterations; i++)
-                PerformHashingOperations(GenerateRandomString(stringLength));
-        });
+        PrintEnvironmentDetails();
+        var target = DateTime.Now.AddMinutes(testRunDurationInMinutes);
+
+        Console.WriteLine("Stress test started.");
+        var startTime = Stopwatch.GetTimestamp();
+
+        while (DateTime.Now < target)
+            Parallel.For(0, Environment.ProcessorCount, pid => PerformHashingOperations(GenerateRandomString(stringLength)));
+
+        var duration = Stopwatch.GetElapsedTime(startTime);
+        Console.WriteLine($"Stress test completed in {duration}.");
     }
 
     private static string GenerateRandomString(int length)
@@ -35,5 +42,18 @@ public class CPUStressTest
         var hash = Encoding.UTF8.GetBytes(input);
         for (int i = 0; i < hashIterations; i++)
             hash = SHA512.HashData(hash);
+    }
+
+    private static void PrintEnvironmentDetails()
+    {
+        var containerFilePath = "/proc/1/cpuset";
+        var containerId = File.Exists(containerFilePath)
+                            ? File.ReadAllText(containerFilePath).Split('/').Last().Trim()
+                            : "NA";
+
+        Console.WriteLine($"Operating System: {Environment.OSVersion}");
+        Console.WriteLine($"Machine Name: {Environment.MachineName}");
+        Console.WriteLine($"Processor Count: {Environment.ProcessorCount}");
+        Console.WriteLine($"Container ID: {containerId}");
     }
 }
