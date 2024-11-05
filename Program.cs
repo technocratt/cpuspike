@@ -8,10 +8,15 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.MapGet("/process", () =>
+app.MapGet("/", () =>
+{
+    return "App is running!";
+});
+
+app.MapGet("/spike", () =>
 {
     Task.Run(() => CPUStressTest.RunStressTest());
-    return "Ok";
+    return "Spike started!";
 });
 
 app.Run();
